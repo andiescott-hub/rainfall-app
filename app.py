@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 # --- Configuration & Caching ---
 API_EMAIL = "andiescott@gmail.com"  # <--- REPLACE THIS WITH YOUR REAL EMAIL
 
-@st.cache_data
+@st.cache_data(ttl=3600)
 def get_silo_data(lat, lon, start_date, end_date):
     # The SILO Data Drill API requires coordinates rounded to the nearest 0.05 degrees
     lat_rounded = round(lat * 20) / 20
@@ -61,27 +61,29 @@ with st.sidebar:
     )
     
     today = datetime.today()
-    
+    # SILO data is typically delayed by ~2 days
+    latest_available = today - timedelta(days=2)
+
     # Logic to calculate the dates based on the dropdown
     if date_preset == "Last 7 Days":
-        start_date = today - timedelta(days=7)
-        end_date = today
+        start_date = latest_available - timedelta(days=7)
+        end_date = latest_available
     elif date_preset == "Last 30 Days":
-        start_date = today - timedelta(days=30)
-        end_date = today
+        start_date = latest_available - timedelta(days=30)
+        end_date = latest_available
     elif date_preset == "Year to Date":
         start_date = datetime(today.year, 1, 1)
-        end_date = today
+        end_date = latest_available
     elif date_preset == "Last 12 Months":
-        start_date = today - timedelta(days=365)
-        end_date = today
+        start_date = latest_available - timedelta(days=365)
+        end_date = latest_available
     else:
         # If "Custom", show the original date pickers
         col1, col2 = st.columns(2)
         with col1:
             start_date = st.date_input("Start Date", datetime(2020, 1, 1))
         with col2:
-            end_date = st.date_input("End Date", today)
+            end_date = st.date_input("End Date", latest_available)
             
     submit_button = st.button("Fetch Rainfall Data")
 
