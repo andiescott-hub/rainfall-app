@@ -4,6 +4,7 @@ import requests
 import time
 from io import StringIO
 from geopy.geocoders import Nominatim
+from geopy.exc import GeocoderUnavailable, GeocoderTimedOut
 from datetime import datetime, timedelta
 
 # --- Configuration & Caching ---
@@ -94,10 +95,20 @@ if submit_button:
     else:
         # 1. Geocoding Phase
         with st.spinner("Resolving location coordinates..."):
-            geolocator = Nominatim(user_agent="historical_rainfall_app")
-            time.sleep(1) 
-            location = geolocator.geocode(location_input)
-            
+            geolocator = Nominatim(user_agent="historical_rainfall_app", timeout=10)
+            location = None
+            for attempt in range(3):
+                try:
+                    time.sleep(1)
+                    location = geolocator.geocode(location_input)
+                    break
+                except (GeocoderUnavailable, GeocoderTimedOut):
+                    if attempt < 2:
+                        time.sleep(2 ** attempt)
+                    else:
+                        st.error("Geocoding service is currently unavailable. Please try again in a moment.")
+                        st.stop()
+
         if location is None:
             st.error("Could not find coordinates for that location. Try being more specific.")
         else:
